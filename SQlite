@@ -1,0 +1,69 @@
+import sqlite3
+db = sqlite3.connect("students.db")
+db.execute("PRAGMA foreign_keys = ON")
+cursor = db.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS student(
+    studentID INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    age INTEGER
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS registered_courses(
+    studentID INTEGER,
+    courseID INTEGER,
+    PRIMARY KEY(studentID, courseID),
+    FOREIGN KEY(studentID) REFERENCES student(studentID)
+)
+""")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS grades(
+    studentID INTEGER,
+    courseID INTEGER,
+    grade REAL,
+    PRIMARY KEY(studentID, courseID),
+    FOREIGN KEY(studentID) REFERENCES student(studentID)
+)
+""")
+students = [
+    (1, "Ali", 20),
+    (2, "Maya", 21),
+    (3, "Karim", 19)
+]
+cursor.executemany("INSERT OR IGNORE INTO student VALUES (?, ?, ?)", students)
+registered = [
+    (1, 101),
+    (1, 102),
+    (2, 101),
+    (2, 103),
+    (3, 102)
+]
+cursor.executemany("INSERT OR IGNORE INTO registered_courses VALUES (?, ?)", registered)
+grades = [
+    (1, 101, 85),
+    (1, 102, 92),
+    (2, 101, 78),
+    (2, 103, 88),
+    (3, 102, 95)
+]
+cursor.executemany("INSERT OR IGNORE INTO grades VALUES (?, ?, ?)", grades)
+db.commit()
+print("\nMaximum grade per student:")
+cursor.execute("""
+SELECT g.studentID, g.courseID, MAX(g.grade)
+FROM grades g
+GROUP BY g.studentID
+""")
+for row in cursor.fetchall():
+    print(f"Student ID: {row[0]}, Course ID: {row[1]}, Max Grade: {row[2]}")
+print("\nAverage grade per student:")
+cursor.execute("""
+SELECT studentID, AVG(grade)
+FROM grades
+GROUP BY studentID
+""")
+for row in cursor.fetchall():
+    print(f"Student ID: {row[0]}, Average Grade: {round(row[1],2)}")
+db.close()
